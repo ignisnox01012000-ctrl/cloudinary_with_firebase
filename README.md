@@ -1,6 +1,6 @@
-# firebase_sevilla
+# Firebase-Google-SignIn-Email
 
-A new Flutter project.
+Flutter application with Firebase authentication and Firestore CRUD functionality.
 
 ## Getting Started
 

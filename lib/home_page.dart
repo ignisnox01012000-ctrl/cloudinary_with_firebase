@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_sevilla/auth_service.dart';
 import 'package:firebase_sevilla/crude_service.dart';
+import 'package:firebase_sevilla/login_page.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -26,7 +28,22 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Colors.grey,
       appBar: AppBar(
-        title: const Text('FireBase Sevilla'),
+        title: const Text('Firebase Sevilla'),
+        centerTitle: true,
+        backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await AuthService().signout();
+              if (!context.mounted) return;
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+              );
+            },
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.teal,
@@ -41,8 +58,10 @@ class _HomePageState extends State<HomePage> {
             return const Center(child: CircularProgressIndicator());
           }
           final docs = snapshot.data!.docs;
-          if(docs.isEmpty) {
-            return const Center(child: Text("No Items Found", style: TextStyle(fontSize: 18)));
+          if (docs.isEmpty) {
+            return const Center(
+              child: Text("No Items Found", style: TextStyle(fontSize: 18)),
+            );
           }
           return ListView.builder(
             padding: const EdgeInsets.all(8),
@@ -53,15 +72,24 @@ class _HomePageState extends State<HomePage> {
               final isFavorite = itemData['favorite'] == true;
               return Card(
                 elevation: 3,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   title: Text(
                     item['name'],
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  subtitle: Text("Quantity ${item['quantity']}",
+                  subtitle: Text(
+                    "Quantity ${item['quantity']}",
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   trailing: Row(
@@ -78,20 +106,20 @@ class _HomePageState extends State<HomePage> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.edit, color: Colors.orange),
-                        onPressed: () => openEditDialog( context, item),
+                        onPressed: () => openEditDialog(context, item),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmDelete( context, item.id),
+                        onPressed: () => _confirmDelete(context, item.id),
                       ),
                     ],
                   ),
-                )
+                ),
               );
-            }
+            },
           );
-        }
-      )
+        },
+      ),
     );
   }
 
@@ -107,10 +135,10 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               service.deleteItem(id);
               Navigator.pop(context);
-            }
-          )
+            },
+          ),
         ],
-      )
+      ),
     );
   }
 
@@ -129,7 +157,9 @@ class _HomePageState extends State<HomePage> {
               controller: nameCtrl,
               decoration: InputDecoration(
                 labelText: "Name",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -137,7 +167,9 @@ class _HomePageState extends State<HomePage> {
               controller: qtyCtrl,
               decoration: InputDecoration(
                 labelText: "Quantity",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ],
@@ -150,7 +182,9 @@ class _HomePageState extends State<HomePage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text("Save"),
             onPressed: () {
@@ -180,7 +214,9 @@ class _HomePageState extends State<HomePage> {
               controller: nameCtrl,
               decoration: InputDecoration(
                 labelText: "Name",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -188,7 +224,9 @@ class _HomePageState extends State<HomePage> {
               controller: qtyCtrl,
               decoration: InputDecoration(
                 labelText: "Quantity",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ],
@@ -201,12 +239,18 @@ class _HomePageState extends State<HomePage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Update'),
             onPressed: () {
               if (nameCtrl.text.isNotEmpty && qtyCtrl.text.isNotEmpty) {
-                service.updateItems(item.id, nameCtrl.text, int.parse(qtyCtrl.text));
+                service.updateItems(
+                  item.id,
+                  nameCtrl.text,
+                  int.parse(qtyCtrl.text),
+                );
                 Navigator.pop(context);
               }
             },
