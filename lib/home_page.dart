@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_sevilla/auth_service.dart';
 import 'package:firebase_sevilla/crude_service.dart';
@@ -15,6 +17,8 @@ class _HomePageState extends State<HomePage> {
   final CrudeService service = CrudeService();
   final TextEditingController nameCtrl = TextEditingController();
   final TextEditingController qtyCtrl = TextEditingController();
+  File? selectedImageFile;
+  String? selectedImageUrl;
 
   @override
   void dispose() {
@@ -50,7 +54,6 @@ class _HomePageState extends State<HomePage> {
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () => openAddDialog(context),
       ),
-
       body: StreamBuilder<QuerySnapshot>(
         stream: service.getItems(),
         builder: (context, snapshot) {
@@ -67,8 +70,9 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(8),
             itemCount: docs.length,
             itemBuilder: (context, index) {
-              var item = docs[index];
+              final item = docs[index];
               final itemData = item.data() as Map<String, dynamic>;
+              final imageUrl = itemData['image_url'] as String?;
               final isFavorite = itemData['favorite'] == true;
               return Card(
                 elevation: 3,
@@ -81,15 +85,26 @@ class _HomePageState extends State<HomePage> {
                     horizontal: 16,
                     vertical: 8,
                   ),
+                  leading: imageUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            imageUrl,
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : null,
                   title: Text(
-                    item['name'],
+                    itemData['name'] ?? '',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   subtitle: Text(
-                    "Quantity ${item['quantity']}",
+                    "Quantity ${itemData['quantity'] ?? 0}",
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   trailing: Row(
@@ -127,15 +142,19 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete item'),
-        content: const Text('Are you sure you want to dlete this item? '),
+        title: const Text("Delete item"),
+        content: const Text("Are you sure you want to delete this item?"),
         actions: [
           TextButton(
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
             onPressed: () {
               service.deleteItem(id);
               Navigator.pop(context);
             },
+          ),
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
           ),
         ],
       ),
@@ -148,53 +167,88 @@ class _HomePageState extends State<HomePage> {
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Add item"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: InputDecoration(
-                labelText: "Name",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text("Add item"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: InputDecoration(
+                  labelText: "Name",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: qtyCtrl,
+                decoration: InputDecoration(
+                  labelText: "Quantity",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 10),
+              if (selectedImageFile != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    selectedImageFile!,
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.upload_file),
+                label: const Text('upload Image'),
+                onPressed: () async {
+                  final pickedFile = await service.pickImageForAddItem();
+                  if (pickedFile != null && context.mounted) {
+                    setDialogState(() {
+                      selectedImageFile = pickedFile.file;
+                      selectedImageUrl = pickedFile.url;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.pop(dialogContext),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: qtyCtrl,
-              decoration: InputDecoration(
-                labelText: "Quantity",
-                border: OutlineInputBorder(
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
+              child: const Text("Save"),
+              onPressed: () async {
+                final quantity = int.tryParse(qtyCtrl.text);
+                if (nameCtrl.text.trim().isEmpty || quantity == null) return;
+
+                await service.addItemwithImage(
+                  nameCtrl.text.trim(),
+                  quantity,
+                  selectedImageUrl,
+                );
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              },
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text("Save"),
-            onPressed: () {
-              if (nameCtrl.text.isNotEmpty && qtyCtrl.text.isNotEmpty) {
-                service.addItem(nameCtrl.text, int.parse(qtyCtrl.text));
-                Navigator.pop(context);
-              }
-            },
-          ),
-        ],
       ),
     );
   }
