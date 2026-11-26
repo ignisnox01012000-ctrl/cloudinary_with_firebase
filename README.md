@@ -1,4 +1,4 @@
-# Firebase-Google-SignIn-Email
+# cloudinary_with_firebase
 
 Flutter application with Firebase authentication and Firestore CRUD functionality.
 
